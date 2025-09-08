@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Descargar Documentos</title>
+</head>
+<body>
+
+    <h1>Descargar Documentos</h1>
+
+    <div>
+        <label for="dni-search">Ingresa tu DNI:</label>
+        <input type="text" id="dni-search">
+    </div>
+
+    <button onclick="fetchDocuments()">Buscar Documentos</button>
+
+    <div id="document-list"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function fetchDocuments() {
+            const dni = document.getElementById('dni-search').value;
+            if (!dni) {
+                alert('Por favor, ingresa tu DNI.');
+                return;
+            }
+
+            try {
+                const { data: documents, error } = await supabase
+                    .from('documents')
+                    .select('*')
+                    .eq('dni', dni);
+
+                if (error) {
+                    throw new Error(`Error de Supabase DB: ${error.message}`);
+                }
+
+                const list = document.getElementById('document-list');
+                list.innerHTML = '';
+
+                if (documents.length === 0) {
+                    list.innerHTML = '<p>No se encontraron documentos para este DNI.</p>';
+                    return;
+                }
+
+                documents.forEach(doc => {
+                    const docDiv = document.createElement('div');
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    link.textContent = doc.file_name;
+                    link.onclick = () => downloadDocument(doc.storage_path);
+                    docDiv.appendChild(link);
+                    list.appendChild(docDiv);
+                });
+
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+                console.error(error);
+            }
+        }
+
+        async function downloadDocument(path) {
+            try {
+                const { data, error } = await supabase.storage
+                    .from('private-documents')
+                    .createSignedUrl(path, 60);
+
+                if (error) {
+                    throw new Error(`Error de Supabase Storage: ${error.message}`);
+                }
+
+                window.open(data.signedUrl, '_blank');
+            } catch (error) {
+                alert(`Error al descargar: ${error.message}`);
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
