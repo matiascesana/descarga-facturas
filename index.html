@@ -1,96 +1,74 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Descargar Documentos</title>
-</head>
-<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+        const SUPABASE_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    <h1>Descargar Documentos</h1>
+        async function fetchDocuments() {
+            const dni = document.getElementById('dni-search').value;
+            
+            if (!dni) {
+                alert('Por favor, ingresa tu DNI para buscar documentos.');
+                return;
+            }
 
-    <div>
-        <label for="dni-search">Ingresa tu DNI:</label>
-        <input type="text" id="dni-search">
-    </div>
+            try {
+                const { data: documents, error } = await supabaseClient
+                    .from('documents')
+                    .select('*')
+                    .eq('dni', dni);
 
-    <button class="search-btn">Buscar Documentos</button>
+                if (error) {
+                    throw new Error(`Error de Supabase DB: ${error.message}`);
+                }
 
-    <div id="document-list"></div>
+                const list = document.getElementById('document-list');
+                list.innerHTML = '';
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', (event) => {
-            const SUPABASE_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co';
-            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8';
-            const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-            async function fetchDocuments() {
-                const dni = document.getElementById('dni-search').value;
-                
-                if (!dni) {
-                    alert('Por favor, ingresa tu DNI para buscar documentos.');
+                if (documents.length === 0) {
+                    list.innerHTML = '<p>No se encontraron documentos para este DNI.</p>';
                     return;
                 }
 
-                try {
-                    const { data: documents, error } = await supabase
-                        .from('documents')
-                        .select('*')
-                        .eq('dni', dni);
+                documents.forEach(doc => {
+                    const docDiv = document.createElement('div');
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    link.textContent = doc.file_name;
+                    link.onclick = () => downloadDocument(doc.storage_path);
+                    docDiv.appendChild(link);
+                    list.appendChild(docDiv);
+                });
 
-                    if (error) {
-                        throw new Error(`Error de Supabase DB: ${error.message}`);
-                    }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+                console.error(error);
+            }
+        }
 
-                    const list = document.getElementById('document-list');
-                    list.innerHTML = '';
+        async function downloadDocument(path) {
+            try {
+                const { data, error } = await supabaseClient.storage
+                    .from('private-documents')
+                    .createSignedUrl(path, 60);
 
-                    if (documents.length === 0) {
-                        list.innerHTML = '<p>No se encontraron documentos para este DNI.</p>';
-                        return;
-                    }
-
-                    documents.forEach(doc => {
-                        const docDiv = document.createElement('div');
-                        const link = document.createElement('a');
-                        link.href = '#';
-                        link.textContent = doc.file_name;
-                        link.onclick = () => downloadDocument(doc.storage_path);
-                        docDiv.appendChild(link);
-                        list.appendChild(docDiv);
-                    });
-
-                } catch (error) {
-                    alert(`Error: ${error.message}`);
-                    console.error(error);
+                if (error) {
+                    throw new Error(`Error de Supabase Storage: ${error.message}`);
                 }
+
+                window.open(data.signedUrl, '_blank');
+            } catch (error) {
+                alert(`Error al descargar: ${error.message}`);
+                console.error(error);
             }
+        }
 
-            async function downloadDocument(path) {
-                try {
-                    const { data, error } = await supabase.storage
-                        .from('private-documents')
-                        .createSignedUrl(path, 60);
-
-                    if (error) {
-                        throw new Error(`Error de Supabase Storage: ${error.message}`);
-                    }
-
-                    window.open(data.signedUrl, '_blank');
-                } catch (error) {
-                    alert(`Error al descargar: ${error.message}`);
-                    console.error(error);
-                }
-            }
-
-            // Cambiamos el selector de ID a clase
-            const searchButton = document.querySelector('.search-btn');
-            if (searchButton) {
-                searchButton.addEventListener('click', fetchDocuments);
-            } else {
-                console.error("No se encontró el botón con la clase 'search-btn'.");
-            }
-        });
-    </script>
-</body>
-</html>
+        const searchButton = document.querySelector('.search-btn');
+        if (searchButton) {
+            searchButton.addEventListener('click', fetchDocuments);
+        } else {
+            console.error("No se encontró el botón con la clase 'search-btn'.");
+        }
+    });
+</script>
