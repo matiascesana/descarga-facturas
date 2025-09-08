@@ -13,24 +13,20 @@
         <input type="text" id="dni-search">
     </div>
 
-    <button id="search-button">Buscar Documentos</button>
+    <button class="search-btn">Buscar Documentos</button>
 
     <div id="document-list"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Este "event listener" asegura que el código JavaScript se ejecute solo cuando
-        // toda la página (incluidos los botones y campos) se haya cargado por completo.
         document.addEventListener('DOMContentLoaded', (event) => {
             const SUPABASE_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8';
             const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-            // Esta función busca los documentos
             async function fetchDocuments() {
                 const dni = document.getElementById('dni-search').value;
                 
-                // Valida si el campo DNI está vacío
                 if (!dni) {
                     alert('Por favor, ingresa tu DNI para buscar documentos.');
                     return;
@@ -70,7 +66,6 @@
                 }
             }
 
-            // Esta función maneja la descarga segura
             async function downloadDocument(path) {
                 try {
                     const { data, error } = await supabase.storage
@@ -88,14 +83,14 @@
                 }
             }
 
-            // Aquí se conecta el botón con la función fetchDocuments()
-            const searchButton = document.getElementById('search-button');
+            // Cambiamos el selector de ID a clase
+            const searchButton = document.querySelector('.search-btn');
             if (searchButton) {
                 searchButton.addEventListener('click', fetchDocuments);
             } else {
-                console.error("No se encontró el botón con el ID 'search-button'.");
+                console.error("No se encontró el botón con la clase 'search-btn'.");
             }
-        }); // Fin del "event listener" de DOMContentLoaded
+        });
     </script>
 </body>
 </html>
