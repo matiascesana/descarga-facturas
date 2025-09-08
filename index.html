@@ -19,10 +19,12 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // --- 1. Inicialización de Supabase ---
         const SUPABASE_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8';
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // --- 2. Funciones que usan Supabase ---
         async function fetchDocuments() {
             const dni = document.getElementById('dni-search').value;
             if (!dni) {
@@ -81,10 +83,8 @@
             }
         }
 
-        // --- Event Listener que soluciona el problema de inicialización ---
+        // --- 3. Ejecutar el código (después de que todo esté inicializado) ---
         document.getElementById('search-button').addEventListener('click', fetchDocuments);
     </script>
 </body>
 </html>
-
-
