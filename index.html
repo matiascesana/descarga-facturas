@@ -13,7 +13,7 @@
         <input type="text" id="dni-search">
     </div>
 
-   <button>Buscar Documentos</button>
+    <button id="search-button">Buscar Documentos</button>
 
     <div id="document-list"></div>
 
@@ -80,7 +80,9 @@
                 console.error(error);
             }
         }
+
+        // --- Event Listener que soluciona el problema de inicialización ---
+        document.getElementById('search-button').addEventListener('click', fetchDocuments);
     </script>
 </body>
 </html>
-
