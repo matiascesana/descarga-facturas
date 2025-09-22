@@ -4,205 +4,212 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Buscar Comprobantes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
+:root {
+  --primary-color: #1a73e8;
+  --primary-color-dark: #0e5bbf;
+  --bg-color: #f0f4f8;
+  --card-bg-color: #ffffff;
+  --text-color: #333;
+  --border-color: #e0e0e0;
+  --shadow-light: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --error-color: #d32f2f;
+  --success-color: #388e3c;
+}
+
 body {
-  font-family: 'Segoe UI', sans-serif;
-  background:#e3f2fd;
-  margin:0;
-  padding:20px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  min-height:100vh;
+  font-family: 'Roboto', sans-serif;
+  background: var(--bg-color);
+  color: var(--text-color);
+  margin: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
+
 h1 {
-  margin-bottom:20px;
-  color:#1565c0;
-  text-align:center;
+  margin-bottom: 20px;
+  color: var(--primary-color-dark);
+  text-align: center;
 }
+
+.container {
+  width: 100%;
+  max-width: 450px;
+  background: var(--card-bg-color);
+  border-radius: 12px;
+  box-shadow: var(--shadow-light);
+  padding: 24px;
+  box-sizing: border-box;
+}
+
 input[type="text"] {
-  padding:12px;
-  font-size:16px;
-  border-radius:8px;
-  border:1px solid #90caf9;
-  width:100%;
-  max-width:300px;
-  margin-bottom:10px;
+  padding: 12px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 16px;
 }
+
 button {
-  padding:12px 20px;
-  font-size:16px;
-  border-radius:8px;
-  border:none;
-  background-color:#1565c0;
-  color:white;
-  cursor:pointer;
-  transition:0.3s;
+  padding: 12px 20px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: none;
+  background-color: var(--primary-color);
+  color: white;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.3s ease;
 }
+
 button:hover {
-  background-color:#0d47a1;
+  background-color: var(--primary-color-dark);
 }
+
 button:disabled {
-  background-color: #bbdefb;
-  cursor: not-allowed;
+  background-color: #a0c3ec;
+  cursor: not-allowed;
 }
+
 #document-list {
-  margin-top:20px;
-  width:100%;
-  max-width:400px;
+  margin-top: 20px;
+  width: 100%;
 }
+
 .doc-item {
-  background:white;
-  border-radius:12px;
-  box-shadow:0 3px 8px rgba(0,0,0,0.1);
-  padding:14px 16px;
-  margin-bottom:12px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+  background: #f8f9fa;
+  border-left: 4px solid var(--primary-color);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
+
+.doc-name {
+  font-weight: 500;
+  color: #444;
+}
+
 .download-btn {
-  padding: 8px 12px;
-  font-size: 14px;
-  border-radius: 6px;
-  background-color: #2196f3;
-  border: none;
-  color: white;
-  cursor: pointer;
-  transition: 0.3s;
+  background-color: var(--success-color);
+  color: white;
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
+
 .download-btn:hover {
-  background-color: #0d47a1;
+  background-color: #2e7d32;
 }
-#toast {
-  position:fixed;
-  bottom:30px;
-  left:50%;
-  transform:translateX(-50%);
-  background-color:#323232;
-  color:#fff;
-  padding:14px 20px;
-  border-radius:8px;
-  opacity:0;
-  pointer-events:none;
-  transition:0.5s;
-  z-index:100;
+
+#status-message {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 500;
 }
-#toast.show {
-  opacity:1;
-  pointer-events:auto;
+
+.status-error {
+  color: var(--error-color);
 }
+
+.status-info {
+  color: #757575;
+}
+
 </style>
 </head>
 <body>
-<h1>Buscar Comprobantes</h1>
-<input type="text" id="dni-search" placeholder="Ingresa tu DNI">
-<button id="search-btn">Buscar Comprobantes</button>
-<div id="document-list"></div>
-<div id="toast" role="status" aria-live="polite"></div>
+<div class="container">
+  <h1>Buscar Comprobantes</h1>
+  <input type="text" id="dni-search" placeholder="Ingresa tu DNI (solo números)">
+  <button id="search-btn">Buscar Comprobantes</button>
+  <div id="document-list"></div>
+  <div id="status-message"></div>
+</div>
 
 <script>
+// Reemplaza estos valores con la URL y la clave de tu proyecto de Supabase
+const SUPABASE_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8';
+const BUCKET_NAME = 'comprobantes'; // Reemplaza con el nombre de tu bucket
+
+const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 const searchBtn = document.getElementById('search-btn');
-const documentList = document.getElementById('document-list');
 const dniInput = document.getElementById('dni-search');
-const toast = document.getElementById('toast');
+const documentList = document.getElementById('document-list');
+const statusMessage = document.getElementById('status-message');
 
-let controller; // Para gestionar la cancelación de la petición anterior
-
-function showToast(message, ms = 3000){
-    toast.textContent = message;
-    toast.classList.add('show');
-    setTimeout(()=>toast.classList.remove('show'), ms);
+function setStatus(message, isError = false) {
+    statusMessage.textContent = message;
+    statusMessage.className = isError ? 'status-message status-error' : 'status-message status-info';
 }
 
 searchBtn.addEventListener('click', () => {
-    const dni = dniInput.value.trim();
-    // Validar que el DNI sea numérico y tenga la longitud esperada
-    if(!dni || !/^\d{8}$/.test(dni)){
-        showToast('Por favor, ingresa un DNI válido de 8 dígitos.');
-        return;
-    }
-    fetchComprobantes(dni);
+    const dni = dniInput.value.trim();
+    if (!dni || !/^\d{8}$/.test(dni)) {
+        setStatus('Por favor, ingresa un DNI válido de 8 dígitos.', true);
+        documentList.innerHTML = '';
+        return;
+    }
+    fetchComprobante(dni);
 });
 
-async function fetchComprobantes(dni){
-    // Cancelar la petición anterior si hay una en curso
-    if (controller) {
-        controller.abort();
-    }
+async function fetchComprobante(dni) {
+    setStatus('Buscando comprobantes...');
+    searchBtn.disabled = true;
+    documentList.innerHTML = '';
 
-    // Crear un nuevo controlador para la petición actual
-    controller = new AbortController();
-    const { signal } = controller;
+    const filePath = `${dni}.pdf`;
 
-    // Actualizar la UI para indicar que la búsqueda está en curso
-    documentList.innerHTML = '<p>Buscando comprobantes...</p>';
-    searchBtn.disabled = true;
-    searchBtn.textContent = 'Buscando...';
+    try {
+        // Busca el archivo directamente en el bucket
+        const { data, error } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(filePath, 60); // URL válida por 60 segundos
 
-    try {
-        const resp = await fetch('/functions/v1/generate-signed-urls', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ dni }),
-            signal // Asociar la señal al fetch para poder cancelarlo
-        });
+        if (error || !data.signedUrl) {
+            if (error && error.message.includes("Object not found")) {
+                setStatus(`No se encontró ningún comprobante para el DNI ${dni}.`, false);
+            } else {
+                setStatus(`Error al buscar el comprobante: ${error?.message || 'Error desconocido'}`, true);
+            }
+            return;
+        }
 
-        if (!resp.ok) {
-            const err = await resp.json().catch(()=>({ error: 'Error desconocido' }));
-            throw new Error(err?.error || 'Error en la petición');
-        }
+        const signedUrl = data.signedUrl;
 
-        // Desestructurar la respuesta para obtener el array de archivos
-        const { files = [] } = await resp.json();
-
-        if (files.length === 0) {
-            documentList.innerHTML = `<p>No hay comprobantes para el DNI ${dni}.</p>`;
-            showToast('No se encontraron comprobantes.');
-            return;
-        }
-
-        documentList.innerHTML = '';
-        files.forEach(file => {
-            const docDiv = document.createElement('div');
-            docDiv.className='doc-item';
-
-            const nameSpan = document.createElement('span');
-            nameSpan.textContent = file.name;
-
-            const downloadBtn = document.createElement('button');
-            downloadBtn.textContent = 'Descargar';
-            downloadBtn.className = 'download-btn';
-            downloadBtn.addEventListener('click', ()=> {
-                const a = document.createElement('a');
-                a.href = file.signedUrl;
-                a.download = file.name;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                showToast('Descarga iniciada ✔️', 2000);
-            });
-
-            docDiv.appendChild(nameSpan);
-            docDiv.appendChild(downloadBtn);
-            documentList.appendChild(docDiv);
-        });
-
-        showToast(`${files.length} comprobante(s) encontrado(s).`);
-
-    } catch (err) {
-        // Solo mostrar el error si no es una cancelación de la petición
-        if (err.name !== 'AbortError') {
-            documentList.innerHTML = '';
-            console.error(err);
-            showToast(`Error: ${err.message}`);
-        }
-    } finally {
-        // Restablecer el estado del botón sin importar si la petición fue exitosa o falló
-        searchBtn.disabled = false;
-        searchBtn.textContent = 'Buscar Comprobantes';
-        controller = null; // Limpiar el controlador
-    }
+        // Limpiar el estado y mostrar el resultado
+        setStatus('');
+        const docDiv = document.createElement('div');
+        docDiv.className = 'doc-item';
+        docDiv.innerHTML = `
+            <span class="doc-name">${dni}.pdf</span>
+            <a href="${signedUrl}" class="download-btn" download="${dni}.pdf">Descargar</a>
+        `;
+        documentList.appendChild(docDiv);
+        
+    } catch (err) {
+        console.error('Error inesperado:', err);
+        setStatus('Ocurrió un error inesperado.', true);
+    } finally {
+        searchBtn.disabled = false;
+    }
 }
 </script>
 </body>
