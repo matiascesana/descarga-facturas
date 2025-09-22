@@ -1,156 +1,12 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Buscar Comprobantes</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-<style>
-:root {
-  --primary-color: #1a73e8;
-  --primary-color-dark: #0e5bbf;
-  --bg-color: #f0f4f8;
-  --card-bg-color: #ffffff;
-  --text-color: #333;
-  --border-color: #e0e0e0;
-  --shadow-light: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --error-color: #d32f2f;
-  --success-color: #388e3c;
-}
-
-body {
-  font-family: 'Roboto', sans-serif;
-  background: var(--bg-color);
-  color: var(--text-color);
-  margin: 0;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-
-h1 {
-  margin-bottom: 20px;
-  color: var(--primary-color-dark);
-  text-align: center;
-}
-
-.container {
-  width: 100%;
-  max-width: 450px;
-  background: var(--card-bg-color);
-  border-radius: 12px;
-  box-shadow: var(--shadow-light);
-  padding: 24px;
-  box-sizing: border-box;
-}
-
-input[type="text"] {
-  padding: 12px;
-  font-size: 16px;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  width: 100%;
-  box-sizing: border-box;
-  margin-bottom: 16px;
-}
-
-button {
-  padding: 12px 20px;
-  font-size: 16px;
-  border-radius: 8px;
-  border: none;
-  background-color: var(--primary-color);
-  color: white;
-  cursor: pointer;
-  width: 100%;
-  transition: background-color 0.3s ease;
-}
-
-button:hover {
-  background-color: var(--primary-color-dark);
-}
-
-button:disabled {
-  background-color: #a0c3ec;
-  cursor: not-allowed;
-}
-
-#document-list {
-  margin-top: 20px;
-  width: 100%;
-}
-
-.doc-item {
-  background: #f8f9fa;
-  border-left: 4px solid var(--primary-color);
-  border-radius: 8px;
-  padding: 14px 16px;
-  margin-bottom: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.doc-name {
-  font-weight: 500;
-  color: #444;
-}
-
-.download-btn {
-  background-color: var(--success-color);
-  color: white;
-  padding: 8px 16px;
-  font-size: 14px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.download-btn:hover {
-  background-color: #2e7d32;
-}
-
-#status-message {
-  margin-top: 20px;
-  text-align: center;
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.status-error {
-  color: var(--error-color);
-}
-
-.status-info {
-  color: #757575;
-}
-</style>
-</head>
-<body>
-<div class="container">
-  <h1>Buscar Comprobantes</h1>
-  <input type="text" id="dni-search" placeholder="Ingresa tu DNI (solo números)">
-  <button id="search-btn">Buscar Comprobantes</button>
-  <div id="document-list"></div>
-  <div id="status-message"></div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// --- VERIFICA TUS CREDENCIALES ---
+// --- CONFIGURACIÓN ---
 const SUPABASE_URL = '[https://ejbqlejlgprvwzrptojo.supabase.co]';
 const SUPABASE_KEY = '[eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8]';
 const BUCKET_NAME = 'private-documents';
 
-// Ahora, Supabase ya está definido y puedes crear el cliente
-const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Cliente Supabase
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const searchBtn = document.getElementById('search-btn');
 const dniInput = document.getElementById('dni-search');
@@ -162,6 +18,19 @@ function setStatus(message, isError = false) {
     statusMessage.className = isError ? 'status-message status-error' : 'status-message status-info';
 }
 
+// Función para formatear tamaño de archivo en KB/MB
+function formatFileSize(sizeInBytes) {
+    if (sizeInBytes < 1024) return sizeInBytes + ' B';
+    else if (sizeInBytes < 1024 * 1024) return (sizeInBytes / 1024).toFixed(1) + ' KB';
+    else return (sizeInBytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+// Función para formatear fecha
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+}
+
 searchBtn.addEventListener('click', () => {
     const dni = dniInput.value.trim();
     if (!dni || !/^\d{8}$/.test(dni)) {
@@ -169,39 +38,52 @@ searchBtn.addEventListener('click', () => {
         documentList.innerHTML = '';
         return;
     }
-    fetchComprobante(dni);
+    fetchComprobantes(dni);
 });
 
-async function fetchComprobante(dni) {
+async function fetchComprobantes(dni) {
     setStatus('Buscando comprobantes...');
     searchBtn.disabled = true;
     documentList.innerHTML = '';
 
-    const filePath = `${dni}.pdf`;
-
     try {
-        const { data, error } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(filePath, 60);
+        // Listar todos los archivos del bucket
+        const { data: files, error } = await supabase.storage.from(BUCKET_NAME).list('', { limit: 100 });
 
-        if (error || !data.signedUrl) {
-            if (error && error.message.includes("Object not found")) {
-                setStatus(`No se encontró ningún comprobante para el DNI ${dni}.`, false);
-            } else {
-                setStatus(`Error al buscar el comprobante: ${error?.message || 'Error desconocido'}`, true);
-            }
+        if (error) {
+            setStatus(`Error al buscar los comprobantes: ${error.message}`, true);
             return;
         }
 
-        const signedUrl = data.signedUrl;
+        // Filtrar archivos que contengan el DNI
+        const matchedFiles = files.filter(file => file.name.includes(dni) && file.name.endsWith('.pdf'));
+
+        if (matchedFiles.length === 0) {
+            setStatus(`No se encontraron comprobantes para el DNI ${dni}.`, false);
+            return;
+        }
+
+        // Mostrar enlaces de descarga con detalles
+        for (const file of matchedFiles) {
+            const { data: signedData, error: signedError } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(file.name, 60);
+            if (signedError || !signedData?.signedUrl) {
+                console.error('Error creando signed URL:', signedError);
+                continue;
+            }
+
+            const docDiv = document.createElement('div');
+            docDiv.className = 'doc-item';
+            docDiv.innerHTML = `
+                <div>
+                    <div class="doc-name">${file.name}</div>
+                    <small>Subido: ${formatDate(file.created_at)} | Tamaño: ${formatFileSize(file.size)}</small>
+                </div>
+                <a href="${signedData.signedUrl}" class="download-btn" download="${file.name}">Descargar</a>
+            `;
+            documentList.appendChild(docDiv);
+        }
 
         setStatus('');
-        const docDiv = document.createElement('div');
-        docDiv.className = 'doc-item';
-        docDiv.innerHTML = `
-            <span class="doc-name">${dni}.pdf</span>
-            <a href="${signedUrl}" class="download-btn" download="${dni}.pdf">Descargar</a>
-        `;
-        documentList.appendChild(docDiv);
-        
     } catch (err) {
         console.error('Error inesperado:', err);
         setStatus('Ocurrió un error inesperado.', true);
@@ -210,5 +92,3 @@ async function fetchComprobante(dni) {
     }
 }
 </script>
-</body>
-</html>
