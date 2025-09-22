@@ -5,10 +5,16 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Descarga Facturas</title>
   <style>
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; padding: 1rem; }
-    input, button { font-size: 1rem; padding: .5rem; margin-right: .5rem; }
-    ul { margin-top: 1rem; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; padding: 1rem; background:#f0f4f8; }
+    h1 { color:#2c3e50; }
+    input, button { font-size: 1rem; padding: .5rem; margin-right: .5rem; border-radius:8px; border:1px solid #ccc; }
+    button { background:#3498db; color:white; cursor:pointer; }
+    button:hover { background:#2980b9; }
+    #status { margin-top:1rem; font-weight:bold; color:#c0392b; }
+    ul { margin-top: 1rem; padding:0; list-style:none; }
     li { margin-bottom: .5rem; }
+    a { color:#27ae60; font-weight:bold; text-decoration:none; }
+    a:hover { text-decoration:underline; }
   </style>
 </head>
 <body>
@@ -19,15 +25,11 @@
   </div>
 
   <div id="status" aria-live="polite"></div>
-
   <ul id="files"></ul>
 
   <script>
     // === CONFIG ===
-    // Reemplaza esta URL por la de tu Edge Function desplegada
-    const FUNCTION_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co';
-    // Si tu sitio corre dentro del mismo proyecto Supabase, puedes usar:
-    // const FUNCTION_URL = '/functions/v1/generate-signed-urls';
+    const FUNCTION_URL = 'https://ejbqlejlgprvwzrptojo.functions.supabase.co/generate-signed-urls';
 
     const btn = document.getElementById('submit');
     const dniInput = document.getElementById('dni');
@@ -51,7 +53,7 @@
 
         const data = await res.json();
         if (!data.files || data.files.length === 0) {
-          status.textContent = 'No se encontraron archivos.';
+          status.textContent = 'No se encontraron archivos para ese DNI.';
           return;
         }
 
@@ -62,7 +64,7 @@
           a.href = f.signedUrl;
           a.target = '_blank';
           a.rel = 'noopener noreferrer';
-          a.textContent = f.name || f.signedUrl;
+          a.textContent = `Descargar ${f.name}`;
           li.appendChild(a);
           filesList.appendChild(li);
         });
@@ -78,7 +80,6 @@
       fetchSignedUrls(dni);
     });
 
-    // Allow Enter key
     dniInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') btn.click();
     });
