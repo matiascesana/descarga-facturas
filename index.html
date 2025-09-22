@@ -148,17 +148,15 @@ button:disabled {
   <div id="status-message"></div>
 </div>
 
-<!-- Cargar Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     // --- CONFIGURACIÓN ---
+    // Tu URL y clave pública de Supabase
     const SUPABASE_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8';
     const BUCKET_NAME = 'private-documents';
 
-    // Inicializar Supabase correctamente usando "Supabase.createClient"
     const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const searchBtn = document.getElementById('search-btn');
@@ -171,17 +169,6 @@ document.addEventListener('DOMContentLoaded', () => {
         statusMessage.className = isError ? 'status-message status-error' : 'status-message status-info';
     }
 
-    function formatFileSize(sizeInBytes) {
-        if (sizeInBytes < 1024) return sizeInBytes + ' B';
-        else if (sizeInBytes < 1024 * 1024) return (sizeInBytes / 1024).toFixed(1) + ' KB';
-        else return (sizeInBytes / (1024 * 1024)).toFixed(2) + ' MB';
-    }
-
-    function formatDate(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-    }
-
     searchBtn.addEventListener('click', () => {
         const dni = dniInput.value.trim();
         if (!dni || !/^\d{8}$/.test(dni)) {
@@ -189,49 +176,40 @@ document.addEventListener('DOMContentLoaded', () => {
             documentList.innerHTML = '';
             return;
         }
-        fetchComprobantes(dni);
+        fetchComprobante(dni);
     });
 
-    async function fetchComprobantes(dni) {
+    async function fetchComprobante(dni) {
         setStatus('Buscando comprobantes...');
         searchBtn.disabled = true;
         documentList.innerHTML = '';
 
+        const filePath = `${dni}.pdf`;
+
         try {
-            const { data: files, error } = await supabase.storage.from(BUCKET_NAME).list('', { limit: 100 });
+            // Intenta directamente crear una URL firmada para el archivo
+            const { data, error } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(filePath, 60);
 
-            if (error) {
-                setStatus(`Error al buscar los comprobantes: ${error.message}`, true);
-                return;
-            }
-
-            const matchedFiles = files.filter(file => file.name.includes(dni) && file.name.endsWith('.pdf'));
-
-            if (matchedFiles.length === 0) {
-                setStatus(`No se encontraron comprobantes para el DNI ${dni}.`, false);
-                return;
-            }
-
-            for (const file of matchedFiles) {
-                const { data: signedData, error: signedError } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(file.name, 60);
-                if (signedError || !signedData?.signedUrl) {
-                    console.error('Error creando signed URL:', signedError);
-                    continue;
+            if (error || !data.signedUrl) {
+                if (error && error.message.includes("Object not found")) {
+                    setStatus(`No se encontró ningún comprobante para el DNI ${dni}.`, false);
+                } else {
+                    setStatus(`Error al buscar el comprobante: ${error?.message || 'Error desconocido'}`, true);
                 }
-
-                const docDiv = document.createElement('div');
-                docDiv.className = 'doc-item';
-                docDiv.innerHTML = `
-                    <div>
-                        <div class="doc-name">${file.name}</div>
-                        <small>Subido: ${formatDate(file.created_at)} | Tamaño: ${formatFileSize(file.size)}</small>
-                    </div>
-                    <a href="${signedData.signedUrl}" class="download-btn" download="${file.name}">Descargar</a>
-                `;
-                documentList.appendChild(docDiv);
+                return;
             }
+
+            const signedUrl = data.signedUrl;
 
             setStatus('');
+            const docDiv = document.createElement('div');
+            docDiv.className = 'doc-item';
+            docDiv.innerHTML = `
+                <span class="doc-name">${filePath}</span>
+                <a href="${signedUrl}" class="download-btn" download="${filePath}">Descargar</a>
+            `;
+            documentList.appendChild(docDiv);
+            
         } catch (err) {
             console.error('Error inesperado:', err);
             setStatus('Ocurrió un error inesperado.', true);
@@ -239,7 +217,6 @@ document.addEventListener('DOMContentLoaded', () => {
             searchBtn.disabled = false;
         }
     }
-
 });
 </script>
 </body>
