@@ -19,7 +19,6 @@
   --error-color: #d32f2f;
   --success-color: #388e3c;
 }
-
 body {
   font-family: 'Roboto', sans-serif;
   background: var(--bg-color);
@@ -32,13 +31,11 @@ body {
   min-height: 100vh;
   box-sizing: border-box;
 }
-
 h1 {
   margin-bottom: 20px;
   color: var(--primary-color-dark);
   text-align: center;
 }
-
 .container {
   width: 100%;
   max-width: 500px;
@@ -48,7 +45,6 @@ h1 {
   padding: 24px;
   box-sizing: border-box;
 }
-
 input[type="text"] {
   padding: 12px;
   font-size: 16px;
@@ -58,7 +54,6 @@ input[type="text"] {
   box-sizing: border-box;
   margin-bottom: 16px;
 }
-
 button {
   padding: 12px 20px;
   font-size: 16px;
@@ -70,21 +65,9 @@ button {
   width: 100%;
   transition: background-color 0.3s ease;
 }
-
-button:hover {
-  background-color: var(--primary-color-dark);
-}
-
-button:disabled {
-  background-color: #a0c3ec;
-  cursor: not-allowed;
-}
-
-#document-list {
-  margin-top: 20px;
-  width: 100%;
-}
-
+button:hover { background-color: var(--primary-color-dark); }
+button:disabled { background-color: #a0c3ec; cursor: not-allowed; }
+#document-list { margin-top: 20px; width: 100%; }
 .doc-item {
   background: #f8f9fa;
   border-left: 4px solid var(--primary-color);
@@ -97,17 +80,8 @@ button:disabled {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   flex-direction: row;
 }
-
-.doc-item div {
-  display: flex;
-  flex-direction: column;
-}
-
-.doc-name {
-  font-weight: 500;
-  color: #444;
-}
-
+.doc-item div { display: flex; flex-direction: column; }
+.doc-name { font-weight: 500; color: #444; }
 .download-btn {
   background-color: var(--success-color);
   color: white;
@@ -117,26 +91,13 @@ button:disabled {
   border: none;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
 }
-
-.download-btn:hover {
-  background-color: #2e7d32;
-}
-
-#status-message {
-  margin-top: 20px;
-  text-align: center;
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.status-error {
-  color: var(--error-color);
-}
-
-.status-info {
-  color: #757575;
-}
+.download-btn:hover { background-color: #2e7d32; }
+#status-message { margin-top: 20px; text-align: center; font-size: 16px; font-weight: 500; }
+.status-error { color: var(--error-color); }
+.status-info { color: #757575; }
 </style>
 </head>
 <body>
@@ -148,17 +109,8 @@ button:disabled {
   <div id="status-message"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // --- CONFIGURACIÓN ---
-    // Tu URL y clave pública de Supabase
-    const SUPABASE_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8';
-    const BUCKET_NAME = 'private-documents';
-
-    const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
     const searchBtn = document.getElementById('search-btn');
     const dniInput = document.getElementById('dni-search');
     const documentList = document.getElementById('document-list');
@@ -166,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setStatus(message, isError = false) {
         statusMessage.textContent = message;
-        statusMessage.className = isError ? 'status-message status-error' : 'status-message status-info';
+        statusMessage.className = isError ? 'status-error' : 'status-info';
     }
 
     searchBtn.addEventListener('click', () => {
@@ -184,35 +136,62 @@ document.addEventListener('DOMContentLoaded', () => {
         searchBtn.disabled = true;
         documentList.innerHTML = '';
 
-        const filePath = `${dni}.pdf`;
-
         try {
-            // Intenta directamente crear una URL firmada para el archivo
-            const { data, error } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(filePath, 60);
+            // Llamada a la Edge Function que genera signed URLs.
+            // No se realiza validación aquí (según lo solicitado).
+            const resp = await fetch('/functions/v1/generate-signed-urls', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dni })
+            });
 
-            if (error || !data.signedUrl) {
-                if (error && error.message.includes("Object not found")) {
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({ error: 'Error desconocido' }));
+                if (resp.status === 404) {
                     setStatus(`No se encontró ningún comprobante para el DNI ${dni}.`, false);
                 } else {
-                    setStatus(`Error al buscar el comprobante: ${error?.message || 'Error desconocido'}`, true);
+                    setStatus(`Error: ${err.error || err.message || 'Petición fallida'}`, true);
                 }
                 return;
             }
 
-            const signedUrl = data.signedUrl;
+            const body = await resp.json(); // { files: [{ name, signedUrl }] }
+            const files = Array.isArray(body.files) ? body.files : [];
 
-            setStatus('');
-            const docDiv = document.createElement('div');
-            docDiv.className = 'doc-item';
-            docDiv.innerHTML = `
-                <span class="doc-name">${filePath}</span>
-                <a href="${signedUrl}" class="download-btn" download="${filePath}">Descargar</a>
-            `;
-            documentList.appendChild(docDiv);
-            
+            if (files.length === 0) {
+                setStatus(`No hay comprobantes para el DNI ${dni}.`, false);
+                return;
+            }
+
+            setStatus(`${files.length} comprobante(s) encontrado(s).`);
+            documentList.innerHTML = '';
+            files.forEach(file => {
+                const docDiv = document.createElement('div');
+                docDiv.className = 'doc-item';
+
+                const infoDiv = document.createElement('div');
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'doc-name';
+                nameSpan.textContent = file.name || 'Documento';
+
+                const downloadLink = document.createElement('a');
+                downloadLink.className = 'download-btn';
+                downloadLink.textContent = 'Descargar';
+                downloadLink.href = file.signedUrl || '#';
+                downloadLink.target = '_blank';
+                downloadLink.rel = 'noopener noreferrer';
+                // Si quieres forzar la descarga en vez de abrir, descomenta la línea siguiente:
+                // downloadLink.setAttribute('download', file.name || '');
+
+                infoDiv.appendChild(nameSpan);
+                docDiv.appendChild(infoDiv);
+                docDiv.appendChild(downloadLink);
+                documentList.appendChild(docDiv);
+            });
+
         } catch (err) {
             console.error('Error inesperado:', err);
-            setStatus('Ocurrió un error inesperado.', true);
+            setStatus('Ocurrió un error inesperado. Intenta más tarde.', true);
         } finally {
             searchBtn.disabled = false;
         }
