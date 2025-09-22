@@ -1,106 +1,234 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Descargar Documentos</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Descargar Documentos</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #e3f2fd;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #1565c0;
+            text-align: center;
+        }
+
+        input[type="text"] {
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1px solid #90caf9;
+            width: 100%;
+            max-width: 300px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: none;
+            background-color: #1565c0;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0d47a1;
+        }
+
+        #document-list {
+            margin-top: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .doc-item {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+            padding: 14px 16px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .doc-item a {
+            color: #1565c0;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .doc-item a:hover {
+            text-decoration: underline;
+        }
+
+        .download-icon {
+            font-size: 20px;
+            color: #1565c0;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: transform 0.2s ease;
+        }
+
+        .download-icon:hover {
+            transform: scale(1.2);
+        }
+
+        /* Animación de fade-in */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+
+        /* Toast */
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #323232;
+            color: #fff;
+            padding: 14px 20px;
+            border-radius: 8px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+            z-index: 100;
+        }
+
+        #toast.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        @media (max-width: 400px) {
+            input[type="text"], button, #document-list {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 <body>
 
-  <h1>Descargar Documentos</h1>
+    <h1>Descargar Documentos</h1>
 
-  <div>
-    <label for="dni-search">Ingresa tu DNI:</label>
-    <input type="text" id="dni-search" placeholder="Ej: 12345678">
-  </div>
+    <input type="text" id="dni-search" placeholder="Ingresa tu DNI">
 
-  <button class="search-btn">Buscar Documentos</button>
+    <button id="search-btn">Buscar Documentos</button>
 
-  <div id="document-list"></div>
+    <div id="document-list"></div>
 
-  <!-- Importamos Supabase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Toast -->
+    <div id="toast"></div>
 
-  <!-- Nuestro código -->
-  <script>
-    const SUPABASE_URL = "https://ejbqlejlgprvwzrptojo.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8"; // 👈 reemplaza con tu key real
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    async function fetchDocuments() {
-      const dni = document.getElementById("dni-search").value.trim();
+        const searchBtn = document.getElementById('search-btn');
+        const documentList = document.getElementById('document-list');
+        const dniInput = document.getElementById('dni-search');
+        const toast = document.getElementById('toast');
 
-      if (!dni) {
-        alert("Por favor, ingresa tu DNI para buscar documentos.");
-        return;
-      }
+        searchBtn.addEventListener('click', fetchDocuments);
 
-      try {
-        const { data: documents, error } = await supabaseClient
-          .from("documents")
-          .select("*")
-          .eq("dni", dni);
-
-        if (error) {
-          throw new Error(`Error de Supabase DB: ${error.message}`);
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
         }
 
-        const list = document.getElementById("document-list");
-        list.innerHTML = "";
+        async function fetchDocuments() {
+            const dni = dniInput.value.trim();
 
-        if (!documents || documents.length === 0) {
-          list.innerHTML = "<p>No se encontraron documentos para este DNI.</p>";
-          return;
+            if (!dni || !dni.match(/^\d+$/)) {
+                showToast('Ingresa un DNI válido (solo números).');
+                return;
+            }
+
+            documentList.innerHTML = '<p>Cargando documentos...</p>';
+
+            try {
+                const { data: documents, error } = await supabase
+                    .from('documents')
+                    .select('*')
+                    .eq('dni', dni);
+
+                if (error) throw new Error(error.message);
+
+                if (!documents || documents.length === 0) {
+                    documentList.innerHTML = '<p>No se encontraron documentos para este DNI.</p>';
+                    return;
+                }
+
+                documentList.innerHTML = '';
+                documents.forEach(doc => {
+                    const docDiv = document.createElement('div');
+                    docDiv.className = 'doc-item';
+
+                    const link = document.createElement('a');
+                    link.textContent = doc.file_name;
+
+                    const icon = document.createElement('span');
+                    icon.innerHTML = '⬇️';
+                    icon.className = 'download-icon';
+                    icon.addEventListener('click', () => downloadDocument(doc.storage_path));
+
+                    docDiv.appendChild(link);
+                    docDiv.appendChild(icon);
+                    documentList.appendChild(docDiv);
+                });
+
+                showToast(`Se encontraron ${documents.length} documento(s).`);
+
+            } catch (error) {
+                documentList.innerHTML = '';
+                showToast(`Error: ${error.message}`);
+                console.error(error);
+            }
         }
 
-        documents.forEach(doc => {
-          const docDiv = document.createElement("div");
-          const link = document.createElement("a");
-          link.href = "#";
-          link.textContent = doc.file_name;
-          link.onclick = () => downloadDocument(doc.storage_path);
-          docDiv.appendChild(link);
-          list.appendChild(docDiv);
-        });
-      } catch (error) {
-        alert(`Error: ${error.message}`);
-        console.error(error);
-      }
-    }
+        async function downloadDocument(path) {
+            try {
+                const { data, error } = await supabase.storage
+                    .from('private-documents')
+                    .createSignedUrl(path, 60);
 
-    async function downloadDocument(path) {
-      try {
-        const { data, error } = await supabaseClient.storage
-          .from("private-documents")
-          .createSignedUrl(path, 60);
+                if (error) throw new Error(error.message);
 
-        if (error) {
-          throw new Error(`Error de Supabase Storage: ${error.message}`);
+                const tempLink = document.createElement('a');
+                tempLink.href = data.signedUrl;
+                tempLink.target = '_blank';
+                tempLink.rel = 'noopener noreferrer';
+                document.body.appendChild(tempLink);
+                tempLink.click();
+                tempLink.remove();
+
+                showToast('Descarga iniciada ✔️');
+
+            } catch (error) {
+                showToast(`Error al descargar: ${error.message}`);
+                console.error(error);
+            }
         }
-
-        window.open(data.signedUrl, "_blank");
-      } catch (error) {
-        alert(`Error al descargar: ${error.message}`);
-        console.error(error);
-      }
-    }
-
-    // 🚀 Nos aseguramos que todo cargue bien
-    window.onload = () => {
-      const searchButton = document.querySelector(".search-btn");
-      const dniInput = document.getElementById("dni-search");
-
-      if (searchButton) {
-        searchButton.addEventListener("click", fetchDocuments);
-      }
-
-      if (dniInput) {
-        dniInput.addEventListener("keypress", (event) => {
-          if (event.key === "Enter") {
-            fetchDocuments();
-          }
-        });
-      }
-    };
-  </script>
+    </script>
 </body>
 </html>
+
