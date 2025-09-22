@@ -1,116 +1,208 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Descargar Comprobantes</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Buscar Comprobantes</title>
 <style>
-body { font-family: 'Segoe UI', sans-serif; background:#e3f2fd; margin:0; padding:20px; display:flex; flex-direction:column; align-items:center; min-height:100vh;}
-h1 {margin-bottom:20px; color:#1565c0; text-align:center;}
-input[type="text"] {padding:12px; font-size:16px; border-radius:8px; border:1px solid #90caf9; width:100%; max-width:300px; margin-bottom:10px;}
-button {padding:12px 20px; font-size:16px; border-radius:8px; border:none; background-color:#1565c0; color:white; cursor:pointer; transition:0.3s;}
-button:hover {background-color:#0d47a1;}
-#document-list {margin-top:20px; width:100%; max-width:400px;}
-.doc-item {background:white; border-radius:12px; box-shadow:0 3px 8px rgba(0,0,0,0.1); padding:14px 16px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;}
-.download-icon {font-size:20px; color:#1565c0; cursor:pointer; margin-left:10px;}
-#toast {position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background-color:#323232; color:#fff; padding:14px 20px; border-radius:8px; opacity:0; pointer-events:none; transition:0.5s; z-index:100;}
-#toast.show {opacity:1; pointer-events:auto;}
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background:#e3f2fd;
+  margin:0;
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  min-height:100vh;
+}
+h1 {
+  margin-bottom:20px;
+  color:#1565c0;
+  text-align:center;
+}
+input[type="text"] {
+  padding:12px;
+  font-size:16px;
+  border-radius:8px;
+  border:1px solid #90caf9;
+  width:100%;
+  max-width:300px;
+  margin-bottom:10px;
+}
+button {
+  padding:12px 20px;
+  font-size:16px;
+  border-radius:8px;
+  border:none;
+  background-color:#1565c0;
+  color:white;
+  cursor:pointer;
+  transition:0.3s;
+}
+button:hover {
+  background-color:#0d47a1;
+}
+button:disabled {
+  background-color: #bbdefb;
+  cursor: not-allowed;
+}
+#document-list {
+  margin-top:20px;
+  width:100%;
+  max-width:400px;
+}
+.doc-item {
+  background:white;
+  border-radius:12px;
+  box-shadow:0 3px 8px rgba(0,0,0,0.1);
+  padding:14px 16px;
+  margin-bottom:12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.download-btn {
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 6px;
+  background-color: #2196f3;
+  border: none;
+  color: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+.download-btn:hover {
+  background-color: #0d47a1;
+}
+#toast {
+  position:fixed;
+  bottom:30px;
+  left:50%;
+  transform:translateX(-50%);
+  background-color:#323232;
+  color:#fff;
+  padding:14px 20px;
+  border-radius:8px;
+  opacity:0;
+  pointer-events:none;
+  transition:0.5s;
+  z-index:100;
+}
+#toast.show {
+  opacity:1;
+  pointer-events:auto;
+}
 </style>
 </head>
 <body>
-
-<h1>Descargar Comprobantes</h1>
+<h1>Buscar Comprobantes</h1>
 <input type="text" id="dni-search" placeholder="Ingresa tu DNI">
 <button id="search-btn">Buscar Comprobantes</button>
 <div id="document-list"></div>
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPABASE_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8';
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 const searchBtn = document.getElementById('search-btn');
 const documentList = document.getElementById('document-list');
 const dniInput = document.getElementById('dni-search');
 const toast = document.getElementById('toast');
 
-searchBtn.addEventListener('click', fetchDocuments);
+let controller; // Para gestionar la cancelación de la petición anterior
 
-function showToast(message){
-    toast.textContent = message;
-    toast.classList.add('show');
-    setTimeout(()=>toast.classList.remove('show'),3000);
+function showToast(message, ms = 3000){
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(()=>toast.classList.remove('show'), ms);
 }
 
-async function fetchDocuments(){
-    const dni = dniInput.value.trim();
-    if(!dni || !/^\d+$/.test(dni)){
-        showToast('Ingresa un DNI válido (solo números).');
-        return;
-    }
+searchBtn.addEventListener('click', () => {
+    const dni = dniInput.value.trim();
+    // Validar que el DNI sea numérico y tenga la longitud esperada
+    if(!dni || !/^\d{8}$/.test(dni)){
+        showToast('Por favor, ingresa un DNI válido de 8 dígitos.');
+        return;
+    }
+    fetchComprobantes(dni);
+});
 
-    documentList.innerHTML = '<p>Buscando documentos...</p>';
+async function fetchComprobantes(dni){
+    // Cancelar la petición anterior si hay una en curso
+    if (controller) {
+        controller.abort();
+    }
 
-    try {
-        // Listar todos los archivos del bucket (limite ajustable)
-        const { data: files, error } = await supabase.storage
-            .from('private-documents')
-            .list('', { limit: 1000 });
+    // Crear un nuevo controlador para la petición actual
+    controller = new AbortController();
+    const { signal } = controller;
 
-        if(error) throw error;
+    // Actualizar la UI para indicar que la búsqueda está en curso
+    documentList.innerHTML = '<p>Buscando comprobantes...</p>';
+    searchBtn.disabled = true;
+    searchBtn.textContent = 'Buscando...';
 
-        // Filtrar todos los archivos que contengan el DNI en el nombre
-        const matchingFiles = files.filter(f => f.name.includes(dni) && f.name.endsWith('.pdf'));
+    try {
+        const resp = await fetch('/functions/v1/generate-signed-urls', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dni }),
+            signal // Asociar la señal al fetch para poder cancelarlo
+        });
 
-        if(matchingFiles.length===0){
-            documentList.innerHTML = `<p>No hay documentos para el DNI ${dni}.</p>`;
-            return;
-        }
+        if (!resp.ok) {
+            const err = await resp.json().catch(()=>({ error: 'Error desconocido' }));
+            throw new Error(err?.error || 'Error en la petición');
+        }
 
-        documentList.innerHTML = '';
-        matchingFiles.forEach(file=>{
-            const docDiv = document.createElement('div');
-            docDiv.className='doc-item';
+        // Desestructurar la respuesta para obtener el array de archivos
+        const { files = [] } = await resp.json();
 
-            const nameSpan = document.createElement('span');
-            nameSpan.textContent=file.name;
+        if (files.length === 0) {
+            documentList.innerHTML = `<p>No hay comprobantes para el DNI ${dni}.</p>`;
+            showToast('No se encontraron comprobantes.');
+            return;
+        }
 
-            const downloadBtn = document.createElement('span');
-            downloadBtn.innerHTML='⬇️';
-            downloadBtn.className='download-icon';
-            downloadBtn.addEventListener('click',()=>downloadDocument(file.name));
+        documentList.innerHTML = '';
+        files.forEach(file => {
+            const docDiv = document.createElement('div');
+            docDiv.className='doc-item';
 
-            docDiv.appendChild(nameSpan);
-            docDiv.appendChild(downloadBtn);
-            documentList.appendChild(docDiv);
-        });
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = file.name;
 
-        showToast(`${matchingFiles.length} documento(s) encontrados.`);
+            const downloadBtn = document.createElement('button');
+            downloadBtn.textContent = 'Descargar';
+            downloadBtn.className = 'download-btn';
+            downloadBtn.addEventListener('click', ()=> {
+                const a = document.createElement('a');
+                a.href = file.signedUrl;
+                a.download = file.name;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                showToast('Descarga iniciada ✔️', 2000);
+            });
 
-    }catch(err){
-        documentList.innerHTML='';
-        showToast(`Error: ${err.message}`);
-        console.error(err);
-    }
-}
+            docDiv.appendChild(nameSpan);
+            docDiv.appendChild(downloadBtn);
+            documentList.appendChild(docDiv);
+        });
 
-async function downloadDocument(filename){
-    try{
-        const { data, error } = await supabase.storage
-            .from('private-documents')
-            .createSignedUrl(filename, 60);
+        showToast(`${files.length} comprobante(s) encontrado(s).`);
 
-        if(error) throw error;
-
-        window.open(data.signedUrl, '_blank');
-        showToast('Descarga iniciada ✔️');
-
-    }catch(err){
-        showToast(`Error al descargar: ${err.message}`);
-        console.error(err);
-    }
+    } catch (err) {
+        // Solo mostrar el error si no es una cancelación de la petición
+        if (err.name !== 'AbortError') {
+            documentList.innerHTML = '';
+            console.error(err);
+            showToast(`Error: ${err.message}`);
+        }
+    } finally {
+        // Restablecer el estado del botón sin importar si la petición fue exitosa o falló
+        searchBtn.disabled = false;
+        searchBtn.textContent = 'Buscar Comprobantes';
+        controller = null; // Limpiar el controlador
+    }
 }
 </script>
 </body>
