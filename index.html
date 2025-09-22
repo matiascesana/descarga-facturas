@@ -146,9 +146,9 @@ button:disabled {
 
 <script>
 // Reemplaza estos valores con la URL y la clave de tu proyecto de Supabase
-const SUPABASE_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8';
-const BUCKET_NAME = 'comprobantes'; // Reemplaza con el nombre de tu bucket
+const SUPABASE_URL = '[https://ejbqlejlgprvwzrptojo.supabase.co]';
+const SUPABASE_KEY = '[eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8]';
+const BUCKET_NAME = 'private-documents'; // Nombre del bucket actualizado
 
 const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -180,8 +180,7 @@ async function fetchComprobante(dni) {
     const filePath = `${dni}.pdf`;
 
     try {
-        // Busca el archivo directamente en el bucket
-        const { data, error } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(filePath, 60); // URL válida por 60 segundos
+        const { data, error } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(filePath, 60);
 
         if (error || !data.signedUrl) {
             if (error && error.message.includes("Object not found")) {
@@ -194,7 +193,6 @@ async function fetchComprobante(dni) {
 
         const signedUrl = data.signedUrl;
 
-        // Limpiar el estado y mostrar el resultado
         setStatus('');
         const docDiv = document.createElement('div');
         docDiv.className = 'doc-item';
