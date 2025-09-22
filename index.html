@@ -5,40 +5,54 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Descarga Facturas</title>
   <style>
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; padding: 1rem; background:#f0f4f8; }
-    h1 { color:#2c3e50; }
-    input, button { font-size: 1rem; padding: .5rem; margin-right: .5rem; border-radius:8px; border:1px solid #ccc; }
-    button { background:#3498db; color:white; cursor:pointer; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:#f0f4f8; padding:1rem; }
+    h1 { text-align:center; color:#2c3e50; margin-bottom:2rem; }
+    .search-box { text-align:center; margin-bottom:2rem; }
+    input, button { font-size:1rem; padding:.5rem; border-radius:8px; border:1px solid #ccc; }
+    button { background:#3498db; color:white; cursor:pointer; margin-left:.5rem; transition:.3s; }
     button:hover { background:#2980b9; }
-    #status { margin-top:1rem; font-weight:bold; color:#c0392b; }
-    ul { margin-top: 1rem; padding:0; list-style:none; }
-    li { margin-bottom: .5rem; }
-    a { color:#27ae60; font-weight:bold; text-decoration:none; }
-    a:hover { text-decoration:underline; }
+    #status { text-align:center; font-weight:bold; color:#c0392b; margin-bottom:1rem; }
+    .cards { display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; }
+    .card {
+      background:white; border-radius:12px; padding:1rem; width:260px;
+      display:flex; flex-direction:column; align-items:center;
+      box-shadow:0 4px 12px rgba(0,0,0,0.12);
+      transition:transform .2s, box-shadow .2s;
+    }
+    .card:hover {
+      transform:translateY(-5px); box-shadow:0 8px 20px rgba(0,0,0,0.18);
+    }
+    .card .icon { font-size:3rem; color:#e74c3c; }
+    .card .filename { text-align:center; font-weight:bold; margin-top:0.5rem; word-break:break-all; }
+    .card .date { margin-top:0.3rem; font-size:0.85rem; color:#7f8c8d; }
+    .card a {
+      text-decoration:none; background:#27ae60; color:white; font-weight:bold;
+      padding:.5rem 1rem; border-radius:8px; margin-top:1rem; display:inline-flex; align-items:center; gap:.5rem; transition:.3s;
+    }
+    .card a:hover { background:#1e8449; }
   </style>
 </head>
 <body>
   <h1>Descargar facturas por DNI</h1>
-  <div>
+  <div class="search-box">
     <input id="dni" placeholder="Ingrese DNI" />
     <button id="submit">Buscar</button>
   </div>
 
   <div id="status" aria-live="polite"></div>
-  <ul id="files"></ul>
+  <div id="cards" class="cards"></div>
 
   <script>
-    // URL de la función pública
     const FUNCTION_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co/functions/v1/smart-function';
 
     const btn = document.getElementById('submit');
     const dniInput = document.getElementById('dni');
     const status = document.getElementById('status');
-    const filesList = document.getElementById('files');
+    const cardsContainer = document.getElementById('cards');
 
     async function fetchSignedUrls(dni) {
       status.textContent = 'Buscando...';
-      filesList.innerHTML = '';
+      cardsContainer.innerHTML = '';
 
       try {
         const res = await fetch(FUNCTION_URL, {
@@ -59,16 +73,48 @@
         }
 
         status.textContent = '';
+
         data.files.forEach(f => {
-          const li = document.createElement('li');
-          const a = document.createElement('a');
-          a.href = f.signedUrl;
-          a.target = '_blank';
-          a.rel = 'noopener noreferrer';
-          a.textContent = `Descargar ${f.name}`;
-          li.appendChild(a);
-          filesList.appendChild(li);
+          const card = document.createElement('div');
+          card.className = 'card';
+
+          // Icono PDF
+          const icon = document.createElement('div');
+          icon.className = 'icon';
+          icon.textContent = '📄';
+
+          // Nombre archivo
+          const nameDiv = document.createElement('div');
+          nameDiv.className = 'filename';
+          nameDiv.textContent = f.name;
+
+          // Fecha subida formateada en español
+          const dateDiv = document.createElement('div');
+          dateDiv.className = 'date';
+          if(f.created_at) {
+            const d = new Date(f.created_at);
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth()+1).padStart(2, '0');
+            const year = d.getFullYear();
+            const hours = String(d.getHours()).padStart(2,'0');
+            const minutes = String(d.getMinutes()).padStart(2,'0');
+            dateDiv.textContent = `Subido: ${day}/${month}/${year} ${hours}:${minutes}`;
+          }
+
+          // Botón descarga
+          const link = document.createElement('a');
+          link.href = f.signedUrl;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = 'Descargar';
+
+          card.appendChild(icon);
+          card.appendChild(nameDiv);
+          card.appendChild(dateDiv);
+          card.appendChild(link);
+          cardsContainer.appendChild(card);
         });
+
       } catch (err) {
         console.error(err);
         status.textContent = 'Error: ' + (err.message || 'Error desconocido');
@@ -87,3 +133,4 @@
   </script>
 </body>
 </html>
+
