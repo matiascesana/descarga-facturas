@@ -15,13 +15,11 @@
             align-items: center;
             min-height: 100vh;
         }
-
         h1 {
             margin-bottom: 20px;
             color: #1565c0;
             text-align: center;
         }
-
         input[type="text"] {
             padding: 12px;
             font-size: 16px;
@@ -31,7 +29,6 @@
             max-width: 300px;
             margin-bottom: 10px;
         }
-
         button {
             padding: 12px 20px;
             font-size: 16px;
@@ -42,17 +39,14 @@
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
-
         button:hover {
             background-color: #0d47a1;
         }
-
         #document-list {
             margin-top: 20px;
             width: 100%;
             max-width: 400px;
         }
-
         .doc-item {
             background-color: white;
             border-radius: 12px;
@@ -63,20 +57,17 @@
             justify-content: space-between;
             align-items: center;
         }
-
         .doc-item a {
             color: #1565c0;
             text-decoration: none;
             font-weight: 600;
         }
-
         .download-icon {
             font-size: 20px;
             color: #1565c0;
             cursor: pointer;
             margin-left: 10px;
         }
-
         #toast {
             position: fixed;
             bottom: 30px;
@@ -91,7 +82,6 @@
             transition: opacity 0.5s ease;
             z-index: 100;
         }
-
         #toast.show {
             opacity: 1;
             pointer-events: auto;
@@ -108,8 +98,10 @@
     <div id="document-list"></div>
     <div id="toast"></div>
 
+    <!-- Cargar librería Supabase antes de usarla -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // Inicialización segura de Supabase
         const SUPABASE_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8';
         const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -124,9 +116,7 @@
         function showToast(message) {
             toast.textContent = message;
             toast.classList.add('show');
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
+            setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
         async function fetchDocuments() {
@@ -145,7 +135,7 @@
                     .select('*')
                     .eq('dni', dni);
 
-                if (error) throw new Error(error.message);
+                if (error) throw error;
 
                 if (!documents || documents.length === 0) {
                     documentList.innerHTML = `<p>No hay documentos para el DNI ${dni}.</p>`;
@@ -170,6 +160,8 @@
                     documentList.appendChild(docDiv);
                 });
 
+                showToast(`${documents.length} documento(s) encontrados.`);
+
             } catch (err) {
                 documentList.innerHTML = '';
                 showToast(`Error: ${err.message}`);
@@ -183,7 +175,7 @@
                     .from('private-documents')
                     .createSignedUrl(path, 60);
 
-                if (error) throw new Error(error.message);
+                if (error) throw error;
 
                 const tempLink = document.createElement('a');
                 tempLink.href = data.signedUrl;
