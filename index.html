@@ -1,202 +1,87 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Buscar Comprobantes</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-<style>
-:root {
-  --primary-color: #1a73e8;
-  --primary-color-dark: #0e5bbf;
-  --bg-color: #f0f4f8;
-  --card-bg-color: #ffffff;
-  --text-color: #333;
-  --border-color: #e0e0e0;
-  --shadow-light: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --error-color: #d32f2f;
-  --success-color: #388e3c;
-}
-body {
-  font-family: 'Roboto', sans-serif;
-  background: var(--bg-color);
-  color: var(--text-color);
-  margin: 0;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-h1 {
-  margin-bottom: 20px;
-  color: var(--primary-color-dark);
-  text-align: center;
-}
-.container {
-  width: 100%;
-  max-width: 500px;
-  background: var(--card-bg-color);
-  border-radius: 12px;
-  box-shadow: var(--shadow-light);
-  padding: 24px;
-  box-sizing: border-box;
-}
-input[type="text"] {
-  padding: 12px;
-  font-size: 16px;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  width: 100%;
-  box-sizing: border-box;
-  margin-bottom: 16px;
-}
-button {
-  padding: 12px 20px;
-  font-size: 16px;
-  border-radius: 8px;
-  border: none;
-  background-color: var(--primary-color);
-  color: white;
-  cursor: pointer;
-  width: 100%;
-  transition: background-color 0.3s ease;
-}
-button:hover { background-color: var(--primary-color-dark); }
-button:disabled { background-color: #a0c3ec; cursor: not-allowed; }
-#document-list { margin-top: 20px; width: 100%; }
-.doc-item {
-  background: #f8f9fa;
-  border-left: 4px solid var(--primary-color);
-  border-radius: 8px;
-  padding: 14px 16px;
-  margin-bottom: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  flex-direction: row;
-}
-.doc-item div { display: flex; flex-direction: column; }
-.doc-name { font-weight: 500; color: #444; }
-.download-btn {
-  background-color: var(--success-color);
-  color: white;
-  padding: 8px 16px;
-  font-size: 14px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-  text-decoration: none;
-  display: inline-block;
-}
-.download-btn:hover { background-color: #2e7d32; }
-#status-message { margin-top: 20px; text-align: center; font-size: 16px; font-weight: 500; }
-.status-error { color: var(--error-color); }
-.status-info { color: #757575; }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Descarga Facturas</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; padding: 1rem; }
+    input, button { font-size: 1rem; padding: .5rem; margin-right: .5rem; }
+    ul { margin-top: 1rem; }
+    li { margin-bottom: .5rem; }
+  </style>
 </head>
 <body>
-<div class="container">
-  <h1>Buscar Comprobantes</h1>
-  <input type="text" id="dni-search" placeholder="Ingresa tu DNI (solo números)">
-  <button id="search-btn">Buscar Comprobantes</button>
-  <div id="document-list"></div>
-  <div id="status-message"></div>
-</div>
+  <h1>Descargar facturas por DNI</h1>
+  <div>
+    <input id="dni" placeholder="Ingrese DNI" />
+    <button id="submit">Buscar</button>
+  </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const searchBtn = document.getElementById('search-btn');
-    const dniInput = document.getElementById('dni-search');
-    const documentList = document.getElementById('document-list');
-    const statusMessage = document.getElementById('status-message');
+  <div id="status" aria-live="polite"></div>
 
-    function setStatus(message, isError = false) {
-        statusMessage.textContent = message;
-        statusMessage.className = isError ? 'status-error' : 'status-info';
+  <ul id="files"></ul>
+
+  <script>
+    // === CONFIG ===
+    // Reemplaza esta URL por la de tu Edge Function desplegada
+    const FUNCTION_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co';
+    // Si tu sitio corre dentro del mismo proyecto Supabase, puedes usar:
+    // const FUNCTION_URL = '/functions/v1/generate-signed-urls';
+
+    const btn = document.getElementById('submit');
+    const dniInput = document.getElementById('dni');
+    const status = document.getElementById('status');
+    const filesList = document.getElementById('files');
+
+    async function fetchSignedUrls(dni) {
+      status.textContent = 'Buscando...';
+      filesList.innerHTML = '';
+      try {
+        const res = await fetch(FUNCTION_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dni })
+        });
+
+        if (!res.ok) {
+          const text = await res.text().catch(() => null);
+          throw new Error(text || `HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        if (!data.files || data.files.length === 0) {
+          status.textContent = 'No se encontraron archivos.';
+          return;
+        }
+
+        status.textContent = '';
+        data.files.forEach(f => {
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = f.signedUrl;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.textContent = f.name || f.signedUrl;
+          li.appendChild(a);
+          filesList.appendChild(li);
+        });
+      } catch (err) {
+        console.error(err);
+        status.textContent = 'Error: ' + (err.message || 'Error desconocido');
+      }
     }
 
-    searchBtn.addEventListener('click', () => {
-        const dni = dniInput.value.trim();
-        if (!dni || !/^\d{8}$/.test(dni)) {
-            setStatus('Por favor, ingresa un DNI válido de 8 dígitos.', true);
-            documentList.innerHTML = '';
-            return;
-        }
-        fetchComprobante(dni);
+    btn.addEventListener('click', () => {
+      const dni = dniInput.value.trim();
+      if (!dni) { status.textContent = 'Ingresa un DNI.'; return; }
+      fetchSignedUrls(dni);
     });
 
-    async function fetchComprobante(dni) {
-        setStatus('Buscando comprobantes...');
-        searchBtn.disabled = true;
-        documentList.innerHTML = '';
-
-        try {
-            // Llamada a la Edge Function que genera signed URLs.
-            // No se realiza validación aquí (según lo solicitado).
-            const resp = await fetch('/functions/v1/generate-signed-urls', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ dni })
-            });
-
-            if (!resp.ok) {
-                const err = await resp.json().catch(() => ({ error: 'Error desconocido' }));
-                if (resp.status === 404) {
-                    setStatus(`No se encontró ningún comprobante para el DNI ${dni}.`, false);
-                } else {
-                    setStatus(`Error: ${err.error || err.message || 'Petición fallida'}`, true);
-                }
-                return;
-            }
-
-            const body = await resp.json(); // { files: [{ name, signedUrl }] }
-            const files = Array.isArray(body.files) ? body.files : [];
-
-            if (files.length === 0) {
-                setStatus(`No hay comprobantes para el DNI ${dni}.`, false);
-                return;
-            }
-
-            setStatus(`${files.length} comprobante(s) encontrado(s).`);
-            documentList.innerHTML = '';
-            files.forEach(file => {
-                const docDiv = document.createElement('div');
-                docDiv.className = 'doc-item';
-
-                const infoDiv = document.createElement('div');
-                const nameSpan = document.createElement('span');
-                nameSpan.className = 'doc-name';
-                nameSpan.textContent = file.name || 'Documento';
-
-                const downloadLink = document.createElement('a');
-                downloadLink.className = 'download-btn';
-                downloadLink.textContent = 'Descargar';
-                downloadLink.href = file.signedUrl || '#';
-                downloadLink.target = '_blank';
-                downloadLink.rel = 'noopener noreferrer';
-                // Si quieres forzar la descarga en vez de abrir, descomenta la línea siguiente:
-                // downloadLink.setAttribute('download', file.name || '');
-
-                infoDiv.appendChild(nameSpan);
-                docDiv.appendChild(infoDiv);
-                docDiv.appendChild(downloadLink);
-                documentList.appendChild(docDiv);
-            });
-
-        } catch (err) {
-            console.error('Error inesperado:', err);
-            setStatus('Ocurrió un error inesperado. Intenta más tarde.', true);
-        } finally {
-            searchBtn.disabled = false;
-        }
-    }
-});
-</script>
+    // Allow Enter key
+    dniInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') btn.click();
+    });
+  </script>
 </body>
 </html>
