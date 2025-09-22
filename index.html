@@ -39,6 +39,7 @@
     async function fetchSignedUrls(dni) {
       status.textContent = 'Buscando...';
       filesList.innerHTML = '';
+
       try {
         const res = await fetch(FUNCTION_URL, {
           method: 'POST',
@@ -86,8 +87,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
