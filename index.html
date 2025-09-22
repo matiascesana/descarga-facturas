@@ -150,96 +150,98 @@ button:disabled {
 
 <!-- Cargar Supabase primero -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<!-- Tu script -->
 <script>
-// --- CONFIGURACIÓN ---
-const SUPABASE_URL = '[https://ejbqlejlgprvwzrptojo.supabase.co]';
-const SUPABASE_KEY = '[eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8]';
-const BUCKET_NAME = 'private-documents';
+document.addEventListener('DOMContentLoaded', () => {
 
-// Inicializar Supabase correctamente
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const SUPABASE_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8';
+    const BUCKET_NAME = 'private-documents';
 
-const searchBtn = document.getElementById('search-btn');
-const dniInput = document.getElementById('dni-search');
-const documentList = document.getElementById('document-list');
-const statusMessage = document.getElementById('status-message');
+    // Inicializar Supabase
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-function setStatus(message, isError = false) {
-    statusMessage.textContent = message;
-    statusMessage.className = isError ? 'status-message status-error' : 'status-message status-info';
-}
+    const searchBtn = document.getElementById('search-btn');
+    const dniInput = document.getElementById('dni-search');
+    const documentList = document.getElementById('document-list');
+    const statusMessage = document.getElementById('status-message');
 
-// Formatear tamaño de archivo
-function formatFileSize(sizeInBytes) {
-    if (sizeInBytes < 1024) return sizeInBytes + ' B';
-    else if (sizeInBytes < 1024 * 1024) return (sizeInBytes / 1024).toFixed(1) + ' KB';
-    else return (sizeInBytes / (1024 * 1024)).toFixed(2) + ' MB';
-}
-
-// Formatear fecha
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-}
-
-searchBtn.addEventListener('click', () => {
-    const dni = dniInput.value.trim();
-    if (!dni || !/^\d{8}$/.test(dni)) {
-        setStatus('Por favor, ingresa un DNI válido de 8 dígitos.', true);
-        documentList.innerHTML = '';
-        return;
+    function setStatus(message, isError = false) {
+        statusMessage.textContent = message;
+        statusMessage.className = isError ? 'status-message status-error' : 'status-message status-info';
     }
-    fetchComprobantes(dni);
-});
 
-async function fetchComprobantes(dni) {
-    setStatus('Buscando comprobantes...');
-    searchBtn.disabled = true;
-    documentList.innerHTML = '';
+    function formatFileSize(sizeInBytes) {
+        if (sizeInBytes < 1024) return sizeInBytes + ' B';
+        else if (sizeInBytes < 1024 * 1024) return (sizeInBytes / 1024).toFixed(1) + ' KB';
+        else return (sizeInBytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
 
-    try {
-        const { data: files, error } = await supabase.storage.from(BUCKET_NAME).list('', { limit: 100 });
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    }
 
-        if (error) {
-            setStatus(`Error al buscar los comprobantes: ${error.message}`, true);
+    searchBtn.addEventListener('click', () => {
+        const dni = dniInput.value.trim();
+        if (!dni || !/^\d{8}$/.test(dni)) {
+            setStatus('Por favor, ingresa un DNI válido de 8 dígitos.', true);
+            documentList.innerHTML = '';
             return;
         }
+        fetchComprobantes(dni);
+    });
 
-        const matchedFiles = files.filter(file => file.name.includes(dni) && file.name.endsWith('.pdf'));
+    async function fetchComprobantes(dni) {
+        setStatus('Buscando comprobantes...');
+        searchBtn.disabled = true;
+        documentList.innerHTML = '';
 
-        if (matchedFiles.length === 0) {
-            setStatus(`No se encontraron comprobantes para el DNI ${dni}.`, false);
-            return;
-        }
+        try {
+            const { data: files, error } = await supabase.storage.from(BUCKET_NAME).list('', { limit: 100 });
 
-        // Mostrar archivos con fecha y tamaño
-        for (const file of matchedFiles) {
-            const { data: signedData, error: signedError } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(file.name, 60);
-            if (signedError || !signedData?.signedUrl) {
-                console.error('Error creando signed URL:', signedError);
-                continue;
+            if (error) {
+                setStatus(`Error al buscar los comprobantes: ${error.message}`, true);
+                return;
             }
 
-            const docDiv = document.createElement('div');
-            docDiv.className = 'doc-item';
-            docDiv.innerHTML = `
-                <div>
-                    <div class="doc-name">${file.name}</div>
-                    <small>Subido: ${formatDate(file.created_at)} | Tamaño: ${formatFileSize(file.size)}</small>
-                </div>
-                <a href="${signedData.signedUrl}" class="download-btn" download="${file.name}">Descargar</a>
-            `;
-            documentList.appendChild(docDiv);
-        }
+            const matchedFiles = files.filter(file => file.name.includes(dni) && file.name.endsWith('.pdf'));
 
-        setStatus('');
-    } catch (err) {
-        console.error('Error inesperado:', err);
-        setStatus('Ocurrió un error inesperado.', true);
-    } finally {
-        searchBtn.disabled = false;
+            if (matchedFiles.length === 0) {
+                setStatus(`No se encontraron comprobantes para el DNI ${dni}.`, false);
+                return;
+            }
+
+            for (const file of matchedFiles) {
+                const { data: signedData, error: signedError } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(file.name, 60);
+                if (signedError || !signedData?.signedUrl) {
+                    console.error('Error creando signed URL:', signedError);
+                    continue;
+                }
+
+                const docDiv = document.createElement('div');
+                docDiv.className = 'doc-item';
+                docDiv.innerHTML = `
+                    <div>
+                        <div class="doc-name">${file.name}</div>
+                        <small>Subido: ${formatDate(file.created_at)} | Tamaño: ${formatFileSize(file.size)}</small>
+                    </div>
+                    <a href="${signedData.signedUrl}" class="download-btn" download="${file.name}">Descargar</a>
+                `;
+                documentList.appendChild(docDiv);
+            }
+
+            setStatus('');
+        } catch (err) {
+            console.error('Error inesperado:', err);
+            setStatus('Ocurrió un error inesperado.', true);
+        } finally {
+            searchBtn.disabled = false;
+        }
     }
-}
+
+});
 </script>
 </body>
 </html>
