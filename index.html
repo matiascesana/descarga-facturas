@@ -148,19 +148,18 @@ button:disabled {
   <div id="status-message"></div>
 </div>
 
-<!-- Cargar Supabase primero -->
+<!-- Cargar Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<!-- Tu script -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-
+    // --- CONFIGURACIÓN ---
     const SUPABASE_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8';
     const BUCKET_NAME = 'private-documents';
 
-    // Inicializar Supabase
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // Inicializar Supabase correctamente usando "Supabase.createClient"
+    const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const searchBtn = document.getElementById('search-btn');
     const dniInput = document.getElementById('dni-search');
