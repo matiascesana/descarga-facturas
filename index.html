@@ -51,17 +51,17 @@ async function fetchDocuments(){
         return;
     }
 
-    documentList.innerHTML = '<p>Cargando documentos...</p>';
+    documentList.innerHTML = '<p>Buscando documentos...</p>';
 
     try {
-        // Listar todos los archivos del bucket
+        // Listar todos los archivos del bucket (limite ajustable)
         const { data: files, error } = await supabase.storage
             .from('private-documents')
-            .list('', { limit: 1000 }); // Ajusta límite según cantidad de archivos
+            .list('', { limit: 1000 });
 
         if(error) throw error;
 
-        // Filtrar los archivos cuyo nombre **contiene el DNI**
+        // Filtrar todos los archivos que contengan el DNI en el nombre
         const matchingFiles = files.filter(f => f.name.includes(dni) && f.name.endsWith('.pdf'));
 
         if(matchingFiles.length===0){
@@ -101,16 +101,10 @@ async function downloadDocument(filename){
         const { data, error } = await supabase.storage
             .from('private-documents')
             .createSignedUrl(filename, 60);
+
         if(error) throw error;
 
-        const tempLink = document.createElement('a');
-        tempLink.href=data.signedUrl;
-        tempLink.target='_blank';
-        tempLink.rel='noopener noreferrer';
-        document.body.appendChild(tempLink);
-        tempLink.click();
-        tempLink.remove();
-
+        window.open(data.signedUrl, '_blank');
         showToast('Descarga iniciada ✔️');
 
     }catch(err){
@@ -121,5 +115,3 @@ async function downloadDocument(filename){
 </script>
 </body>
 </html>
-
-
