@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --primary-color: #1a73e8;
@@ -132,7 +131,6 @@ button:disabled {
 .status-info {
   color: #757575;
 }
-
 </style>
 </head>
 <body>
@@ -144,11 +142,12 @@ button:disabled {
   <div id="status-message"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // Reemplaza estos valores con la URL y la clave de tu proyecto de Supabase
-const SUPABASE_URL = '[https://ejbqlejlgprvwzrptojo.supabase.co]';
-const SUPABASE_KEY = '[eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8]';
-const BUCKET_NAME = 'private-documents'; // Nombre del bucket actualizado
+const SUPABASE_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8';
+const BUCKET_NAME = 'private-documents';
 
 const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
