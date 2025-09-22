@@ -143,75 +143,70 @@ button:disabled {
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
 // --- VERIFICA TUS CREDENCIALES ---
-// Reemplaza estos valores con la URL y la clave de tu proyecto de Supabase
 const SUPABASE_URL = 'https://ejbqlejlgprvwzrptojo.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqYnFsZWpsZ3Bydnd6cnB0b2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwMjkwMjIsImV4cCI6MjA3MjYwNTAyMn0.9fVItJka0MN3nlfowVudIE0AuNmfTJGQcbbqpau2Th8';
 const BUCKET_NAME = 'private-documents';
 
-// --- Verificación de seguridad ---
-if (typeof Supabase === 'undefined') {
-    console.error('El script de Supabase no se ha cargado. Por favor, verifica tu conexión a Internet y la URL del script en el HTML.');
-} else {
-    const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const searchBtn = document.getElementById('search-btn');
-    const dniInput = document.getElementById('dni-search');
-    const documentList = document.getElementById('document-list');
-    const statusMessage = document.getElementById('status-message');
+const searchBtn = document.getElementById('search-btn');
+const dniInput = document.getElementById('dni-search');
+const documentList = document.getElementById('document-list');
+const statusMessage = document.getElementById('status-message');
 
-    function setStatus(message, isError = false) {
-        statusMessage.textContent = message;
-        statusMessage.className = isError ? 'status-message status-error' : 'status-message status-info';
+function setStatus(message, isError = false) {
+    statusMessage.textContent = message;
+    statusMessage.className = isError ? 'status-message status-error' : 'status-message status-info';
+}
+
+searchBtn.addEventListener('click', () => {
+    const dni = dniInput.value.trim();
+    if (!dni || !/^\d{8}$/.test(dni)) {
+        setStatus('Por favor, ingresa un DNI válido de 8 dígitos.', true);
+        documentList.innerHTML = '';
+        return;
     }
+    fetchComprobante(dni);
+});
 
-    searchBtn.addEventListener('click', () => {
-        const dni = dniInput.value.trim();
-        if (!dni || !/^\d{8}$/.test(dni)) {
-            setStatus('Por favor, ingresa un DNI válido de 8 dígitos.', true);
-            documentList.innerHTML = '';
+async function fetchComprobante(dni) {
+    setStatus('Buscando comprobantes...');
+    searchBtn.disabled = true;
+    documentList.innerHTML = '';
+
+    const filePath = `${dni}.pdf`;
+
+    try {
+        const { data, error } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(filePath, 60);
+
+        if (error || !data.signedUrl) {
+            if (error && error.message.includes("Object not found")) {
+                setStatus(`No se encontró ningún comprobante para el DNI ${dni}.`, false);
+            } else {
+                setStatus(`Error al buscar el comprobante: ${error?.message || 'Error desconocido'}`, true);
+            }
             return;
         }
-        fetchComprobante(dni);
-    });
 
-    async function fetchComprobante(dni) {
-        setStatus('Buscando comprobantes...');
-        searchBtn.disabled = true;
-        documentList.innerHTML = '';
+        const signedUrl = data.signedUrl;
 
-        const filePath = `${dni}.pdf`;
-
-        try {
-            const { data, error } = await supabase.storage.from(BUCKET_NAME).createSignedUrl(filePath, 60);
-
-            if (error || !data.signedUrl) {
-                if (error && error.message.includes("Object not found")) {
-                    setStatus(`No se encontró ningún comprobante para el DNI ${dni}.`, false);
-                } else {
-                    setStatus(`Error al buscar el comprobante: ${error?.message || 'Error desconocido'}`, true);
-                }
-                return;
-            }
-
-            const signedUrl = data.signedUrl;
-
-            setStatus('');
-            const docDiv = document.createElement('div');
-            docDiv.className = 'doc-item';
-            docDiv.innerHTML = `
-                <span class="doc-name">${dni}.pdf</span>
-                <a href="${signedUrl}" class="download-btn" download="${dni}.pdf">Descargar</a>
-            `;
-            documentList.appendChild(docDiv);
-            
-        } catch (err) {
-            console.error('Error inesperado:', err);
-            setStatus('Ocurrió un error inesperado.', true);
-        } finally {
-            searchBtn.disabled = false;
-        }
+        setStatus('');
+        const docDiv = document.createElement('div');
+        docDiv.className = 'doc-item';
+        docDiv.innerHTML = `
+            <span class="doc-name">${dni}.pdf</span>
+            <a href="${signedUrl}" class="download-btn" download="${dni}.pdf">Descargar</a>
+        `;
+        documentList.appendChild(docDiv);
+        
+    } catch (err) {
+        console.error('Error inesperado:', err);
+        setStatus('Ocurrió un error inesperado.', true);
+    } finally {
+        searchBtn.disabled = false;
     }
 }
 </script>
